@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:sportspectra/resources/auth_methods.dart';
+import 'package:sportspectra/screens/home_screen.dart';
 import 'package:sportspectra/widgets/custom_button.dart';
 import 'package:sportspectra/widgets/custom_textfield.dart';
 
@@ -15,6 +17,22 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
+  final AuthMethods _authMethods = AuthMethods();
+
+  void signUpUser() async {
+    bool res = await _authMethods.signUpUser(
+      context,
+      _emailController.text,
+      _usernameController.text,
+      _passwordController.text,
+    );
+
+    // if res is true, we go to home screen
+    if (res) {
+      Navigator.pushNamed(context, HomeScreen.routeName);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // for any screen size, it will adjust application to fit screen
@@ -63,7 +81,7 @@ class _SignupScreenState extends State<SignupScreen> {
             const SizedBox(
               height: 20,
             ),
-            CustomButton(onTap: () {}, text: 'Sign Up')
+            CustomButton(onTap: signUpUser, text: 'Sign Up')
           ]),
         ),
       ),
