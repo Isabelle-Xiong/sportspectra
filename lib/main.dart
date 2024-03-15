@@ -1,12 +1,16 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sportspectra/providers/user_provider.dart';
+import 'package:sportspectra/resources/auth_methods.dart';
 import 'package:sportspectra/screens/home_screen.dart';
 import 'package:sportspectra/screens/login_screen.dart';
 import 'package:sportspectra/screens/onboarding_screen.dart';
 import 'package:sportspectra/screens/signup_screen.dart';
 import 'package:sportspectra/utils/colors.dart';
+import 'package:sportspectra/widgets/loading_indicator.dart';
+import 'models/user.dart' as model;
 
 void main() async {
   // ensure widgets are initialized
@@ -51,7 +55,36 @@ class MyApp extends StatelessWidget {
         SignupScreen.routeName: (context) => const SignupScreen(),
         HomeScreen.routeName: (context) => const HomeScreen(),
       },
-      home: const OnboardingScreen(),
+      // when we close the app and reopen, we want users that have logged in to stay logged in, and not go back to login screen
+      home: FutureBuilder(
+        // if current user signed up, currentUser cannot be null
+        future: AuthMethods()
+            .getCurrentUser(FirebaseAuth.instance.currentUser != null
+                // if they havent signed up it may be null and you return null
+                ? FirebaseAuth.instance.currentUser!.uid
+                : null)
+            .then((value) {
+          //if map value is null, dont do anything cuz still in onboarding, if has any value then need to store in user provider
+          if (value != null) {
+            Provider.of<UserProvider>(context, listen: false).setUser(
+              model.User.fromMap(value),
+            );
+          }
+          // if value not equal to null, return value
+          return value;
+        }),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const LoadingIndicator();
+          }
+
+          if (snapshot.hasData) {
+            // if snapshot has data, that means user already logged in so go to home screen
+            return const HomeScreen();
+          }
+          return const OnboardingScreen();
+        },
+      ),
     );
   }
 }

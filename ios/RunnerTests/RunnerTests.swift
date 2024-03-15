@@ -1,5 +1,6 @@
-import Flutter
+
 import UIKit
+import Flutter
 import XCTest
 
 class RunnerTests: XCTestCase {

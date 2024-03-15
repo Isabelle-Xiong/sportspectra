@@ -1,5 +1,3 @@
-import 'dart:js';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +11,15 @@ class AuthMethods {
   // This defines a private instance variable _userRef, which is a reference to the Firestore collection named 'users'.
   final _userRef = FirebaseFirestore.instance.collection('users');
   final _auth = FirebaseAuth.instance;
+
+  Future<Map<String, dynamic>?> getCurrentUser(String? uid) async {
+    if (uid != null) {
+      // get all details of user just by accessing uid
+      final snap = await _userRef.doc(uid).get();
+      return snap.data();
+    }
+    return null;
+  }
 
   Future<bool> signUpUser(
     // BuildContext locates the nearest ancestor widget of a specific type
@@ -38,6 +45,37 @@ class AuthMethods {
         await _userRef.doc(cred.user!.uid).set(user.toMap());
         // updating the user data stored in the UserProvider instance without causing any dependent widgets to rebuild immediately, since listen is set to false. It's a way to update the state managed by the provider without triggering UI updates at that moment.
         Provider.of<UserProvider>(context, listen: false).setUser(user);
+        // sign up function is successful, res = true
+        res = true;
+      }
+    } on FirebaseAuthException catch (e) {
+      // ! makes sure it's not null
+      showSnackBar(context, e.message!);
+    }
+    return res;
+  }
+
+  Future<bool> loginUser(
+    // BuildContext locates the nearest ancestor widget of a specific type
+    BuildContext context,
+    String email,
+    String password,
+  ) async {
+    // result initially sets to false, if result is false at end, make sure go below ad catch error
+    bool res = false;
+    try {
+      UserCredential cred = await _auth.signInWithEmailAndPassword(
+          email: email, password: password);
+      // this cred.user comes from firebase, not from our self made model
+      if (cred.user != null) {
+        // updating the user data stored in the UserProvider instance without causing any dependent widgets to rebuild immediately, since listen is set to false. It's a way to update the state managed by the provider without triggering UI updates at that moment.
+        Provider.of<UserProvider>(context, listen: false).setUser(
+          // ?? used for providing a default value when encountering a null value. else pass in empty map {}
+          model.User.fromMap(
+            // this whole function above and here gets data from firebase on current user and sets it to the provider user model
+            await getCurrentUser(cred.user!.uid) ?? {},
+          ),
+        );
         // sign up function is successful, res = true
         res = true;
       }
