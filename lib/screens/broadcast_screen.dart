@@ -7,6 +7,8 @@ import 'package:sportspectra/config/appid.dart';
 import 'package:sportspectra/providers/user_provider.dart';
 import 'package:agora_rtc_engine/rtc_local_view.dart' as RtcLocalView;
 import 'package:agora_rtc_engine/rtc_remote_view.dart' as RtcRemoteView;
+import 'package:sportspectra/resources/firestore_methods.dart';
+import 'package:sportspectra/screens/home_screen.dart';
 
 class BroadcastScreen extends StatefulWidget {
   final bool isBroadcaster;
@@ -78,17 +80,38 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
     }));
   }
 
+  _leaveChannel() async {
+    await _engine.leaveChannel();
+    // if broadcaster leaves channel, end stream
+    if ('${Provider.of<UserProvider>(context, listen: false).user.uid}${Provider.of<UserProvider>(context, listen: false).user.username}' ==
+        widget.channelId) {
+      await FirestoreMethods().endLiveStream(widget.channelId);
+    } else {
+      // if other viewers leave channel, update view count
+      // set to false since we are leaving broadcast screen, so need to be false to decrease view by 1 via isIncrease function.
+      await FirestoreMethods().updateViewCount(widget.channelId, false);
+    }
+    Navigator.pushReplacementNamed(context, HomeScreen.routeName);
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<UserProvider>(context).user;
-    return Scaffold(
-        body: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              children: [
-                _renderVideo(user),
-              ],
-            )));
+    return PopScope(
+      onPopInvoked: (didPop) async {
+        await _leaveChannel();
+        return Future.value(true);
+        ;
+      },
+      child: Scaffold(
+          body: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                children: [
+                  _renderVideo(user),
+                ],
+              ))),
+    );
   }
 
   _renderVideo(user) {
