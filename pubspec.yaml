@@ -39,6 +39,9 @@ dependencies:
   provider: ^6.0.2
   dotted_border: ^2.0.0
   file_picker: ^4.0.0
+  agora_rtc_engine: ^5.0.1
+  # ask permission from users
+  permission_handler: ^11.3.0
 
 dev_dependencies:
   # The "flutter_lints" package below contains a set of recommended lints to
