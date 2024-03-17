@@ -32,6 +32,7 @@ class _ChatState extends State<Chat> {
     final size = MediaQuery.of(context).size;
 
     return SizedBox(
+      // desktop view vs mobile view
       width: size.width > 600 ? size.width * 0.25 : double.infinity,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,

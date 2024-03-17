@@ -12,9 +12,11 @@ import 'package:sportspectra/providers/user_provider.dart';
 import 'package:agora_rtc_engine/rtc_local_view.dart' as RtcLocalView;
 import 'package:agora_rtc_engine/rtc_remote_view.dart' as RtcRemoteView;
 import 'package:sportspectra/resources/firestore_methods.dart';
+import 'package:sportspectra/responsive/responsive_layout.dart';
 import 'package:sportspectra/screens/home_screen.dart';
 import 'package:sportspectra/widgets/chat.dart';
 import 'package:http/http.dart' as http;
+import 'package:sportspectra/widgets/custom_button.dart';
 
 class BroadcastScreen extends StatefulWidget {
   final bool isBroadcaster;
@@ -181,32 +183,71 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
         ;
       },
       child: Scaffold(
+          // show custom buttons on bottom navigation bar only when user is broadcaster
+          bottomNavigationBar: widget.isBroadcaster
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                  child: CustomButton(
+                    text: 'End Stream',
+                    onTap: _leaveChannel,
+                  ),
+                  // if not broadcaster, don't show custom buttons
+                )
+              : null,
           body: Padding(
               padding: const EdgeInsets.all(8),
-              child: Column(
-                children: [
-                  _renderVideo(user),
-                  if ("${user.uid}${user.username}" == widget.channelId)
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        InkWell(
-                          onTap: _switchCamera,
-                          child: const Text('Switch Camera'),
-                        ),
-                        InkWell(
-                          onTap: onToggleMute,
-                          child: Text(isMuted ? 'Unmute' : 'Mute'),
-                        ),
-                      ],
+              child: ResponsiveLayout(
+                desktopBody: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          if ("${user.uid}${user.username}" == widget.channelId)
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                InkWell(
+                                  onTap: _switchCamera,
+                                  child: const Text('Switch Camera'),
+                                ),
+                                InkWell(
+                                  onTap: onToggleMute,
+                                  child: Text(isMuted ? 'Unmute' : 'Mute'),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
                     ),
-                  Expanded(
-                    child: Chat(
-                      channelId: widget.channelId,
+                    Chat(channelId: widget.channelId),
+                  ],
+                ),
+                mobileBody: Column(
+                  children: [
+                    _renderVideo(user),
+                    if ("${user.uid}${user.username}" == widget.channelId)
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          InkWell(
+                            onTap: _switchCamera,
+                            child: const Text('Switch Camera'),
+                          ),
+                          InkWell(
+                            onTap: onToggleMute,
+                            child: Text(isMuted ? 'Unmute' : 'Mute'),
+                          ),
+                        ],
+                      ),
+                    Expanded(
+                      child: Chat(
+                        channelId: widget.channelId,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ))),
     );
   }
