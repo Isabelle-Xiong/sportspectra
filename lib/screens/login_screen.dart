@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sportspectra/resources/auth_methods.dart';
+import 'package:sportspectra/responsive/responsive.dart';
 import 'package:sportspectra/screens/home_screen.dart';
 import 'package:sportspectra/widgets/custom_button.dart';
 import 'package:sportspectra/widgets/custom_textfield.dart';
@@ -55,37 +56,40 @@ class _LoginScreenState extends State<LoginScreen> {
       // need scrollable cuz when keyboard pops up we want to be able to adjust screen by scrolling
       body: _isLoading
           ? const LoadingIndicator()
-          : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18.0),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: size.height * 0.1),
-                      const Text('Email',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                          )),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: CustomTextField(controller: _emailController),
-                      ),
-                      const SizedBox(
-                        height: 20,
-                      ),
-                      const Text('Password',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                          )),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: CustomTextField(controller: _passwordController),
-                      ),
-                      const SizedBox(
-                        height: 20,
-                      ),
-                      CustomButton(onTap: loginUser, text: 'Log In')
-                    ]),
+          : Responsive(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: size.height * 0.1),
+                        const Text('Email',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            )),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: CustomTextField(controller: _emailController),
+                        ),
+                        const SizedBox(
+                          height: 20,
+                        ),
+                        const Text('Password',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            )),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child:
+                              CustomTextField(controller: _passwordController),
+                        ),
+                        const SizedBox(
+                          height: 20,
+                        ),
+                        CustomButton(onTap: loginUser, text: 'Log In')
+                      ]),
+                ),
               ),
             ),
     );

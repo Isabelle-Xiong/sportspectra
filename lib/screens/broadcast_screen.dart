@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -13,6 +14,7 @@ import 'package:agora_rtc_engine/rtc_remote_view.dart' as RtcRemoteView;
 import 'package:sportspectra/resources/firestore_methods.dart';
 import 'package:sportspectra/screens/home_screen.dart';
 import 'package:sportspectra/widgets/chat.dart';
+import 'package:http/http.dart' as http;
 
 class BroadcastScreen extends StatefulWidget {
   final bool isBroadcaster;
@@ -54,11 +56,38 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
     _joinChannel();
   }
 
+  String baseUrl = "https://sportspectra-server-go-flutter.onrender.com";
+
+  String? token;
+
+  // send http request to api (created with golang)
+
+  Future<void> getToken() async {
+    final res = await http.get(
+      Uri.parse(baseUrl +
+          '/rtc/' +
+          widget.channelId +
+          '/publisher/userAccount/' +
+          Provider.of<UserProvider>(context, listen: false).user.uid +
+          '/'),
+    );
+    // if response is ok, set token
+    if (res.statusCode == 200) {
+      setState(() {
+        token = res.body;
+        token = jsonDecode(token!)['rtcToken'];
+      });
+    } else {
+      debugPrint('Failed to fetch the token');
+    }
+  }
+
   void _joinChannel() async {
+    await getToken();
     if (defaultTargetPlatform == TargetPlatform.android) {
       await [Permission.microphone, Permission.camera].request();
     }
-    await _engine.joinChannelWithUserAccount(tempToken, "testing123",
+    await _engine.joinChannelWithUserAccount(token, widget.channelId,
         Provider.of<UserProvider>(context, listen: false).user.uid);
   }
 
@@ -121,6 +150,10 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
       setState(() {
         remoteUid.clear();
       });
+      // when token expires, get new token and give engine new token
+    }, tokenPrivilegeWillExpire: (token) async {
+      await getToken();
+      await _engine.renewToken(token);
     }));
   }
 

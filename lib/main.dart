@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sportspectra/providers/user_provider.dart';
@@ -15,7 +16,21 @@ import 'models/user.dart' as model;
 void main() async {
   // ensure widgets are initialized
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  // if web, connect to firebase web
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+        options: const FirebaseOptions(
+            apiKey: "AIzaSyBZ5hyQln-bep4lGbbF6eFXIr8Ex6L2p5c",
+            authDomain: "sportspectra-f56d5.firebaseapp.com",
+            projectId: "sportspectra-f56d5",
+            storageBucket: "sportspectra-f56d5.appspot.com",
+            messagingSenderId: "201033761181",
+            appId: "1:201033761181:web:16ba74eb31d402829a2f74"));
+  } else {
+    await Firebase.initializeApp();
+  }
+
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(
       create: (_) => UserProvider(),
