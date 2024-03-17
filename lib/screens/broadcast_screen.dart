@@ -275,32 +275,35 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
   _renderVideo(user) {
     print('Remote UIDs: $remoteUid');
     print('Remote UIDs Type: ${remoteUid.runtimeType}');
-    return AspectRatio(
-      aspectRatio: 16 / 9,
-      child: "${user.uid}${user.username}" == widget.channelId
-          ? isScreenSharing
-              ? kIsWeb
-                  ? const RtcLocalView.SurfaceView.screenShare()
-                  : const RtcLocalView.TextureView.screenShare()
-              : const RtcLocalView.SurfaceView(
-                  zOrderMediaOverlay: true,
-                  zOrderOnTop: true,
-                )
-          : isScreenSharing
-              ? kIsWeb
-                  ? const RtcLocalView.SurfaceView.screenShare()
-                  : const RtcLocalView.TextureView.screenShare()
-              : remoteUid.isNotEmpty // Check if remoteUid list is not empty
-                  ? kIsWeb // Check if running on web
-                      ? RtcRemoteView.SurfaceView(
-                          uid: remoteUid[0],
-                          channelId: widget.channelId,
-                        ) // Use RtcRemoteView.SurfaceView for web
-                      : RtcRemoteView.TextureView(
-                          uid: remoteUid[0],
-                          channelId: widget.channelId,
-                        ) // Use RtcRemoteView.TextureView for non-web platforms
-                  : Container(), // Use empty Container if remoteUid list is empty
+    return Container(
+      height: 200,
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: "${user.uid}${user.username}" == widget.channelId
+            ? isScreenSharing
+                ? kIsWeb
+                    ? const RtcLocalView.SurfaceView.screenShare()
+                    : const RtcLocalView.TextureView.screenShare()
+                : const RtcLocalView.SurfaceView(
+                    zOrderMediaOverlay: true,
+                    zOrderOnTop: true,
+                  )
+            : isScreenSharing
+                ? kIsWeb
+                    ? const RtcLocalView.SurfaceView.screenShare()
+                    : const RtcLocalView.TextureView.screenShare()
+                : remoteUid.isNotEmpty // Check if remoteUid list is not empty
+                    ? kIsWeb // Check if running on web
+                        ? RtcRemoteView.SurfaceView(
+                            uid: remoteUid[0],
+                            channelId: widget.channelId,
+                          ) // Use RtcRemoteView.SurfaceView for web
+                        : RtcRemoteView.TextureView(
+                            uid: remoteUid[0],
+                            channelId: widget.channelId,
+                          ) // Use RtcRemoteView.TextureView for non-web platforms
+                    : Container(), // Use empty Container if remoteUid list is empty
+      ),
     );
   }
 }
