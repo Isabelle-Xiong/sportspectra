@@ -66,6 +66,7 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
   // send http request to api (created with golang)
 
   Future<void> getToken() async {
+    print('Fetching token for channel ${widget.channelId}');
     final res = await http.get(
       Uri.parse(baseUrl +
           '/rtc/' +
@@ -80,6 +81,7 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
         token = res.body;
         token = jsonDecode(token!)['rtcToken'];
       });
+      print('Token fetched successfully: $token');
     } else {
       debugPrint('Failed to fetch the token');
     }
@@ -120,6 +122,9 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
       if (defaultTargetPlatform == TargetPlatform.android) {
         await [Permission.microphone, Permission.camera].request();
       }
+
+      print(
+          'Channel ID: ${widget.channelId}, Type: ${widget.channelId.runtimeType}');
       await _engine.joinChannelWithUserAccount(token, widget.channelId,
           Provider.of<UserProvider>(context, listen: false).user.uid);
     }
@@ -199,93 +204,77 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<UserProvider>(context).user;
+
     return PopScope(
       onPopInvoked: (didPop) async {
         await _leaveChannel();
         return Future.value(true);
-        ;
       },
       child: Scaffold(
-          // show custom buttons on bottom navigation bar only when user is broadcaster
-          bottomNavigationBar: widget.isBroadcaster
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 18.0),
-                  child: CustomButton(
-                    text: 'End Stream',
-                    onTap: _leaveChannel,
-                  ),
-                  // if not broadcaster, don't show custom buttons
-                )
-              : null,
-          body: Padding(
-              padding: const EdgeInsets.all(8),
-              child: ResponsiveLayout(
-                desktopBody: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        children: [
-                          if ("${user.uid}${user.username}" == widget.channelId)
-                            Column(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                InkWell(
-                                  onTap: _switchCamera,
-                                  child: const Text('Switch Camera'),
-                                ),
-                                InkWell(
-                                  onTap: onToggleMute,
-                                  child: Text(isMuted ? 'Unmute' : 'Mute'),
-                                ),
-                                InkWell(
-                                  onTap: isScreenSharing
-                                      ? _stopScreenShare
-                                      : _startScreenShare,
-                                  child: Text(
-                                    isScreenSharing
-                                        ? 'Stop ScreenSharing'
-                                        : 'Start Screensharing',
-                                  ),
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
-                    Chat(channelId: widget.channelId),
-                  ],
+        bottomNavigationBar: widget.isBroadcaster
+            ? Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                child: CustomButton(
+                  text: 'End Stream',
+                  onTap: _leaveChannel,
                 ),
-                mobileBody: Column(
+              )
+            : null,
+        body: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              _renderVideo(user),
+              if ("${user.uid}${user.username}" == widget.channelId)
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    _renderVideo(user, isScreenSharing),
-                    if ("${user.uid}${user.username}" == widget.channelId)
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          InkWell(
-                            onTap: _switchCamera,
-                            child: const Text('Switch Camera'),
-                          ),
-                          InkWell(
-                            onTap: onToggleMute,
-                            child: Text(isMuted ? 'Unmute' : 'Mute'),
-                          ),
-                        ],
-                      ),
-                    Expanded(
-                      child: Chat(
-                        channelId: widget.channelId,
+                    InkWell(
+                      onTap: _switchCamera,
+                      child: const Text('Switch Camera'),
+                    ),
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          isMuted = !isMuted;
+                        });
+                        onToggleMute();
+                      },
+                      child: Text(isMuted ? 'Unmute' : 'Mute'),
+                    ),
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          isScreenSharing = !isScreenSharing;
+                        });
+                        isScreenSharing
+                            ? _startScreenShare()
+                            : _stopScreenShare();
+                      },
+                      child: Text(
+                        isScreenSharing
+                            ? 'Stop ScreenSharing'
+                            : 'Start Screensharing',
                       ),
                     ),
                   ],
                 ),
-              ))),
+              Expanded(
+                child: Chat(
+                  channelId: widget.channelId,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  _renderVideo(user, isScreenSharing) {
+  _renderVideo(user) {
+    print('Remote UIDs: $remoteUid');
+    print('Remote UIDs Type: ${remoteUid.runtimeType}');
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: "${user.uid}${user.username}" == widget.channelId
