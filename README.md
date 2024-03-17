@@ -8,6 +8,8 @@ As an avid table tennis player who has represented Canada at national levels, I'
 
 ## Current Features
 
+Demo Link: https://duke.box.com/s/f1m8asxl7wd7i41nltuhrommfu00h2b8
+
 - Basic live streaming
 - Camera Switching
 - Mute/ Unmute
