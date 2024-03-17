@@ -42,6 +42,8 @@ dependencies:
   agora_rtc_engine: ^5.0.1
   # ask permission from users
   permission_handler: ^11.3.0
+  # generates random uid for anything (e.g. comments)
+  uuid: ^3.0.6
 
 dev_dependencies:
   # The "flutter_lints" package below contains a set of recommended lints to
