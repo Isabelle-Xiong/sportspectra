@@ -49,6 +49,7 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
 
     await _engine.enableVideo();
     await _engine.startPreview();
+    // making user join second time to see screen of user
     await _engine.setChannelProfile(ChannelProfile.LiveBroadcasting);
     if (widget.isBroadcaster) {
       _engine.setClientRole(ClientRole.Broadcaster);
@@ -84,13 +85,44 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
     }
   }
 
+  void _addListeners() {
+    _engine.setEventHandler(
+        RtcEngineEventHandler(joinChannelSuccess: (channel, uid, elapsed) {
+      debugPrint('joinChannelSuccess $channel $uid $elapsed');
+    }, userJoined: (uid, elapsed) {
+      debugPrint('userJoined $uid $elapsed');
+      setState(() {
+        remoteUid.add(uid);
+      });
+      // if user goes offline
+    }, userOffline: (uid, reason) {
+      debugPrint('userOffline $uid $reason');
+      // remove user if they go offline
+      setState(() {
+        remoteUid.removeWhere((element) => element == uid);
+      });
+    }, leaveChannel: (stats) {
+      debugPrint('leaveChannel $stats');
+      // when admin leaves channel, everyone clears
+      setState(() {
+        remoteUid.clear();
+      });
+      // when token expires, get new token and give engine new token
+    }, tokenPrivilegeWillExpire: (token) async {
+      await getToken();
+      await _engine.renewToken(token);
+    }));
+  }
+
   void _joinChannel() async {
     await getToken();
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      await [Permission.microphone, Permission.camera].request();
+    if (token != null) {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        await [Permission.microphone, Permission.camera].request();
+      }
+      await _engine.joinChannelWithUserAccount(token, widget.channelId,
+          Provider.of<UserProvider>(context, listen: false).user.uid);
     }
-    await _engine.joinChannelWithUserAccount(token, widget.channelId,
-        Provider.of<UserProvider>(context, listen: false).user.uid);
   }
 
   void _switchCamera() {
@@ -128,35 +160,26 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
         windowId = windows[index].id;
       }
     }
+    await helper.startScreenCaptureByWindowId(windowId);
+    setState(() {
+      isScreenSharing = true;
+    });
+    await helper.joinChannelWithUserAccount(
+      token,
+      widget.channelId,
+      Provider.of<UserProvider>(context, listen: false).user.uid,
+    );
   }
 
-  void _addListeners() {
-    _engine.setEventHandler(
-        RtcEngineEventHandler(joinChannelSuccess: (channel, uid, elapsed) {
-      debugPrint('joinChannelSuccess $channel $uid $elapsed');
-    }, userJoined: (uid, elapsed) {
-      debugPrint('userJoined $uid $elapsed');
+  _stopScreenShare() async {
+    final helper = await _engine.getScreenShareHelper();
+    await helper.destroy().then((value) {
       setState(() {
-        remoteUid.add(uid);
+        isScreenSharing = false;
       });
-      // if user goes offline
-    }, userOffline: (uid, reason) {
-      debugPrint('userOffline $uid $reason');
-      // remove user if they go offline
-      setState(() {
-        remoteUid.removeWhere((element) => element == uid);
-      });
-    }, leaveChannel: (stats) {
-      debugPrint('leaveChannel $stats');
-      // when admin leaves channel, everyone clears
-      setState(() {
-        remoteUid.clear();
-      });
-      // when token expires, get new token and give engine new token
-    }, tokenPrivilegeWillExpire: (token) async {
-      await getToken();
-      await _engine.renewToken(token);
-    }));
+    }).catchError((err) {
+      debugPrint('StopScreenShare $err');
+    });
   }
 
   _leaveChannel() async {
@@ -215,6 +238,16 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
                                   onTap: onToggleMute,
                                   child: Text(isMuted ? 'Unmute' : 'Mute'),
                                 ),
+                                InkWell(
+                                  onTap: isScreenSharing
+                                      ? _stopScreenShare
+                                      : _startScreenShare,
+                                  child: Text(
+                                    isScreenSharing
+                                        ? 'Stop ScreenSharing'
+                                        : 'Start Screensharing',
+                                  ),
+                                ),
                               ],
                             ),
                         ],
@@ -225,7 +258,7 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
                 ),
                 mobileBody: Column(
                   children: [
-                    _renderVideo(user),
+                    _renderVideo(user, isScreenSharing),
                     if ("${user.uid}${user.username}" == widget.channelId)
                       Column(
                         mainAxisSize: MainAxisSize.min,
@@ -252,25 +285,33 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
     );
   }
 
-  _renderVideo(user) {
+  _renderVideo(user, isScreenSharing) {
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: "${user.uid}${user.username}" == widget.channelId
-          ? const RtcLocalView.SurfaceView(
-              zOrderMediaOverlay: true,
-              zOrderOnTop: true,
-            )
-          : remoteUid.isNotEmpty // Check if remoteUid list is not empty
-              ? kIsWeb // Check if running on web
-                  ? RtcRemoteView.SurfaceView(
-                      uid: remoteUid[0],
-                      channelId: widget.channelId,
-                    ) // Use RtcRemoteView.SurfaceView for web
-                  : RtcRemoteView.TextureView(
-                      uid: remoteUid[0],
-                      channelId: widget.channelId,
-                    ) // Use RtcRemoteView.TextureView for non-web platforms
-              : Container(), // Use empty Container if remoteUid list is empty
+          ? isScreenSharing
+              ? kIsWeb
+                  ? const RtcLocalView.SurfaceView.screenShare()
+                  : const RtcLocalView.TextureView.screenShare()
+              : const RtcLocalView.SurfaceView(
+                  zOrderMediaOverlay: true,
+                  zOrderOnTop: true,
+                )
+          : isScreenSharing
+              ? kIsWeb
+                  ? const RtcLocalView.SurfaceView.screenShare()
+                  : const RtcLocalView.TextureView.screenShare()
+              : remoteUid.isNotEmpty // Check if remoteUid list is not empty
+                  ? kIsWeb // Check if running on web
+                      ? RtcRemoteView.SurfaceView(
+                          uid: remoteUid[0],
+                          channelId: widget.channelId,
+                        ) // Use RtcRemoteView.SurfaceView for web
+                      : RtcRemoteView.TextureView(
+                          uid: remoteUid[0],
+                          channelId: widget.channelId,
+                        ) // Use RtcRemoteView.TextureView for non-web platforms
+                  : Container(), // Use empty Container if remoteUid list is empty
     );
   }
 }
